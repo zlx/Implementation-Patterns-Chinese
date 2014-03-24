@@ -230,3 +230,52 @@ Java 里面的两种机制：抽象街口，父类和接口有不一样的代价
 
 但是这种优势在用 Java 写程序时经常会被随意挥霍。这个模式是帮助你来清晰而又易扩展地表达逻辑。
 
+### 内部类
+
+有时候你想封装某些计算逻辑，但是又不想为它额外创建一个文件或者新类。声明一个小的私有类（内部类）允许你以较低的成本获得类的好处。
+
+有时候，内部类仅仅继承自 Object 。有时候，内部类也扩展了其它父类，那些仅有内部感兴趣的特性。
+
+内部类的一个特性是当创建了一个实例，它们就获得了一个创建了这个它们的对象的一份拷贝。这样就可以方便地和封装好的数据进行交互，而不需要建立额外的联系：
+
+	public class InnerClassExample {
+	  private String field;
+	  
+	  public class Inner {
+	  	public String example() {
+	  		reurn field;  // Uses the field from the enclosing instance
+	  	}
+	  
+	  @Test public void passes() {
+	  	field = "abc";
+	  	Inner bar = new Inner();
+	  	assertEquals("abc", bar.example());
+	  }
+	 }
+
+然后，在上面的内部类中，即使你声明了，也没有真正的无参构造器。当你使用反射创建内部类的实例时，就有一个问题：
+
+	public class InnerClassExample {
+		public class Inner {
+			public Inner() {
+		}
+		@Test(expected=NoSuchMethodException.class)
+		public void innerHasNoArgConstructor() throws Exception {
+			Inner.class.getConstructor(new Class[0]);
+		}
+	}
+	
+如果想真正地和封装它的实例中分开，就声明为 static 。
+
+
+### 实例特有的行为
+
+理论上，一个类的所有实例共享相同的逻辑。突破这个限制就产生了一种新的表达方式。这种类型都有一个代价。如果一个对象的逻辑都有它的类持有，那读者就可以通过代码知道逻辑。一旦你的某些实例有不同的行为。你必须在运行环境下或者分析数据流才能了解一个特定的对象到底如何表现。
+
+另外一个实例行为的代价是，当计算过程中逻辑改变了的时候。对于那些一旦创建就不改变的对象，设置实例行为是比较合理的做法。
+
+
+### 条件表达式
+
+
+	
