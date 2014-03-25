@@ -277,5 +277,117 @@ Java 里面的两种机制：抽象街口，父类和接口有不一样的代价
 
 ### 条件表达式
 
+If/then 和 switch 是最简单的实例特有的行为。使用条件表达式，根据数据的不同，不同的对象会执行不同的逻辑。条件表达式作为一种表达方式，它（与一般的实例特有的行为相比）具有在类中可见的优势。读者不需要到处寻找计算路径。然而，条件表达式的缺点是除非修改错误对象的代码，否则它就不能修改。
 
+通过程序执行的每条路径都有一定可能是正确的。假定每条路径正确的几率是相互独立的，那可能的路径越多，程序正确的可能性就越小。虽然这个几率并不完全是独立的，但是相对于拥有多路径的程序比拥有较少路径的程序含有较多缺陷这个来说，它们也足够独立了。条件表达式的增加降低了程序的可靠性。
+
+这个程序由重复的条件表达式混合而成。假如有一个简单的 graphic 编辑器。 这个 figures 需要一个 display() 的方法：
+
+	public void display() {
+	  switch (getType()) {
+	    case RECTANGLE:
+	      //...
+	      break;
+	    case OVAL:
+	      //...
+	      break;
+	    case TEXT:
+	      //...
+	      break;
+	    default:
+	      break;
+	  }
+	}
 	
+Figures 也需要一个方法来表明它是否包含一个点：
+
+	public boolean contains(Point p) {
+	  switch (getType()) {
+	    case RECTANGLE:
+	      //...
+	      break;
+	    case OVAL:
+	      //...
+	      break;
+	    case TEXT:
+	      //...
+	      break;
+	    default:
+	      break; 
+	  }
+	}
+	
+假如你现在要增加一个 Figure。首先，你需要在每个 switch 表达式中添加一个新子句；第二，为此，你还要修改 Figure 类，保证所有已有的功能都正常；最后，每个需要添加新 figures 的人都需要修改在一个类里面。
+
+这些问题都可以通过将条件表达式转化为消息来解决，不管是父类化还是代理（基于目前的代码是最合理的方式）。重复的条件逻辑或者基于一个条件表达式的处理逻辑非常复杂都最好是转化为消息的方式（来处理）。另外，频繁变化的条件表达逻辑最好是用消息来表示以达到仅修改一处而不影响其它地方。
+
+[Figure 5.6]()
+
+简单来说，条件表达式的优势--当他们简单而自用时候--反而会成为被广泛时候时变成劣势。
+
+### 代理
+
+另外一种方式来达到不同实例不同处理逻辑的目的是将工作代理到一个可能的对象。相同的部分放在调用的类里面，不同的部分放到代理类里面。
+
+一个使用代理来处理差异的例子是 graphical 编辑器中处理用户输入的例子。有时候一个按钮按下代表“创建一个矩形”，有时候代表“移动一个图形”，或者其它。
+
+一种方式是使用条件表达式：
+
+	public void mouseDown() {
+	  switch (getTool()) {
+	    case SELECTING:
+	      //...
+	      break;
+	    case CREATING_RECTANGLE:
+	      //...
+	      break;
+	    case EDITING_TEXT:
+	      //...
+	      break;
+	    default:
+	      break;
+	  }
+	}
+
+这种做法有之前说的问题：添加一个新工具需要修改现有的代码并且重复条件表达式（in mouseUp(), mouseMove() 等等）导致添加新工具很困难。
+
+子类化并不是解决方案，因为这个编辑器可能需要中途改变工具。代理就可以实现这种动态性：
+
+	public void mouseDown() {
+	  getTool().mouseDown();
+	}
+	
+开关语句中的子句就可以移到不同工具的里面。这样，添加新类型就不需要修改这个编辑器或者现有代码了。阅读这样的代码就需要更加全面，因为 mouse-down 的逻辑分布在不同的类里面。了解编辑器特定情况下如何工作需要你知道目前使用的是什么工具。
+
+代理可以保存为一个属性（一个“可插拔对象”），并且他们也可以临时计算出来。JUnit 4 就动态地计算出一个类中需要跑的测试。如果一个类中包含了一种旧形式的测试，就会创建一个代理，但是如果这个类中包含了新的测试，就创建一个新的代理。这是条件表达式（创建代理）和代理的混合使用。	
+
+代理可用于共用代码，也可以用于创建特定实例的行为。一个代理到 Stream 的对象可以作为特定实例的行为，比如运行过程中 Stream 的类型会发生变化，或者 Stream 的实现是所有用户共用的。
+
+一个代理的变形是传递一个代理器到一个代理方法中：
+
+	GraphicEditor
+	public void mouseDown() {
+	  tool.mouseDown(this);
+	}
+	
+	RectangleTool
+	public void mouseDown(GraphicEditor editor) {
+	  editor.add(new RectangleFigure());
+	}
+	
+如果一个代理需要给自己发消息，“itself” 是模糊不清的。有时候，消息应该发送给代理对象。有时候，消息应该发送给代理。下面的例子， RetangleTool 添加一个 figure， 但是代理到 GraphicalEditor，而不是自己。这个 GraphicalEditor 应该作为参数传给代理的 mouseDown() 方法，但是在这个例子中，他好像仅仅是简单地在工具中保存了一个引用。传递 GraphicsEditor 使得多个编辑器中可以使用同样的工具，如果不需要这样，那代码可以更简单一些。
+
+	GraphicEditor
+	public void mouseDown() {
+	  tool.mouseDown();
+	}
+	
+	RectangleTool
+	private GraphicEditor editor;
+	public RectangleTool(GraphicEditor editor) {
+	  this.editor = editor;
+	}
+	
+	public void mouseDown() {
+	  editor.add(new RectangleFigure());
+	}  			
