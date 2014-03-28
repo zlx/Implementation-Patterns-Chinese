@@ -427,6 +427,49 @@ Java 提供了另外一种选择来实现实例特定的行为---匿名内部类
 
 ### 库类
 
+你会将那些不和任何对象相关的功能放在哪里？一个方式是在一个空的类里面创建一些静态方法。不能创建这个类的实例。只需要提供一个这个库的引用。
 
+当库还较少使用时，它们并没有什么问题。将所有逻辑放到静态方法里面是面向对象编程最大的代价：一个私有标志可以简化逻辑。尽可能地将库类转化为对象。
 
+有时候找到一个方法的位置很容易。Collections 库有一个方法 sort(List)。这样一个参数可能就代表了这个方法可能属于 List 这个类。
+
+另一种将库类转化为对象的方法是将静态方法转化为实例方法。刚开始需要将静态方法代理到实例方法来维持相同的接口。比如，一个 Library 的类：
+
+	public static void method(...params...) {
+		...some logic...
+	}
+	
+转化为
+
+	public static void method(...params...) {
+		new Library().instanceMethod(...params...);
+	}
+	
+	private void instanceMethod(...params...) {
+		...some logic...
+	}
+
+现在，如果有些方法有类似的参数（如果没有，那可能这些方法就属于其他类），就将这些参数转化为构造器参数。
+
+	public static void method(...params...) {
+		new Library(...params...).instanceMethod();
+	}
+	
+	private void instanceMethod() {
+	  ...some logic...
+	}
+	
+下一步，就可以将移除静态方法，让客户端使用新版的接口。
+
+	public void instanceMethod(...params...) {
+		...some logic...
+	}
+
+这个经验告诉我们，如何命名类和方法来保持清晰。
+
+### 结论
+
+一个类将关联的状态打包。下一章节将介绍状态相关的一些模式
+
+		  
 		  			
