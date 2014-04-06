@@ -163,7 +163,46 @@
 
 ### 临时变量
 
+临时变量仅从声明开始到他们的作用域结束之间可以访问。遵循信息应该尽可能少地传播的原则，临时变量应该在将要使用时声明并且尽可能地在最深的作用域。
 
+这里有一堆临时变量的角色：
+
++ 集合：用来保存之后可能使用的信息。通常这种类型是以结果的形式返回的。可以用 result 或者 results 命名。
++ 计数：一个特殊的集合，用来保存其它对象的数量。
++ 解释：如果你有一个巨复杂的表达式，将每一部分赋给一个临时变量有助于帮助读者理解。
+
+	int top=...;
+	int left=...;
+	int height=...;
+	int bottom=...;
+	return new Rectangle(top, left, height, eidth);
+	
+即使不需要计算，解释用的临时变量也对长长的，复杂的表达式有帮助。
+
+解释临时变量经常意味着需要帮助方法。表达式就是方法体，临时变量则是方法名。有时候这样可以用来简化方法调用，有时候又可以用来移除重复表达式。
+
++ 重用：当一个表达式的值变了，但是你又想多次使用相同的值，可以将它保存在临时变量中。比如说：如果多个对象需要相同的时间戳，你不能每次获取最新时间：
+
+	for(Clock each: getClocks())
+		each.setTime(System.currentTimeMillis());
+	
+而使用临时变量来保存时间而达到目的：
+	
+	long now=System.currentTimeMillis();
+	for(Clock each: grtClocks())
+		each.setTime(now);	
+
++ 元素：最后一个临时变量的用法是保存一个集合中的当个元素。在上面的例子中，each 是清晰、简单的名字。如果你要问“each what？”，可以看一看 for 语句。
+
+对于嵌套循环，将集合的名字加到临时变量的最后来区分：
+
+	broadcast() {
+		for (Source eachSender: getSenders())
+			for(Destination eachReceiver: getReceivers())
+				...;
+	}
+
+### 属性
 
 
 
