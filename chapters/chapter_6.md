@@ -255,11 +255,81 @@
 	s.d();
 	s.e();
 	
-### 集合参数
+### 收集参数
 
-		
+从多个方法调用中返回结果需要以某种方式合并结果。一种方式是保证所有方法又返回值，这种方式当返回值比较简单，比如 Integer 是有效的。
+
+	Node 
+	int size() {
+	  int result=1;
+	  for(Node each:getChildren())
+	    result += each.size();
+	  return result;
+	}
+
+当合并结果并不是简单的相加时，这时候传第一个收集参数来收集结果更直接。比如说：分析树时，收集参数很有用。
+
+	Node 
+	asList() {
+	  List results = new ArrayList();
+	  addTo(results);
+	  result results;
+	}
+	addTo(List elements) {
+	  elements.add(getValue());
+	  for(Node each: getChildren())
+	    each.addTo(elements);
+	}	
 	
+一些另外的更加复杂的情况，比如说 GraphicsContext 在树之间传递或者 TestResult 在测试的树的周边使用。
 
+### 可选参数
+
+有些方法会接受一个参数，如果没传的话赋予一个默认值。这时候，将一些强制的参数放在参数列表的前面，可选参数放在后面。这可以保证尽可能的参数相同，可选参数出现在最后。
+
+ServerSocket 构造器就包含了可选参数。基本构造器不带参数，也可以传递一个端口号，还可以传递端口号和 backlog 的长度。
+
+public ServerSocket()
+public ServerSocket(int port)
+public ServerSocket(int port, int backlog)
+
+关键词语言可以更直接地表示可选参数。因为 Java 只有位置参数，一个参数是不是可选只能靠约定。有些人把这种叫做望远镜参数模式，提供了如何相互收集参数。
+
+### 可变长参数
+
+有些方法可以结构任意多个给定类型的参数。一个简单的做法是始终传递一个集合作为参数。调用这样的方法，中间的参数的展现是杂乱的：
+
+Collection<String> keys = new ArrayList<String>();
+keys.add(key1);
+keys.add(key2);
+object.index(keys);
+
+这个问题是普遍的，因为 Java 提供了一个机制来传递可变长的参数。通过这样 method(Class... classes) 来声明一个方法，客户端就可以通过传递任意多个参数来调用方法。
+
+object.index(key1, key2);
+
+可变长参数必须是最后一个参数。如果一个方法既有可选参数，也有可变长参数，可选参数必须在可变长参数之前。
+
+
+### 参数对象
+
+如果一组参数经常被用于作为参数使用，可以考虑构造一个把它们作为属性的对象，然后传递对象。一旦你用对象代替了一组参数，看看是不是有些方法就用到了这个参数对象里面的属性，这样你就可以将它们归为参数对象的方法。
+
+比如说，在 Java 里面，用图形库来画矩形需要 x, y, width 和 height 几个参数。有时候这四个参数传递了很多层，结果就是它们会变得很长，很难理解。
+
+	setOuterBounds(x, y, width, height);
+	setInnerBounds(x, y, width - 4, height - 4);
+	
+使用对象来代替，就可以直接这样：
+
+	setOuterBounds(bounds);
+	setInnerBounds(bounds.expand(-2));
+
+使用参数对象可以简化代码，阐述意图，并且提供一个可以扩大合并长方形的算法的地方，这样就可以在需要的时候全局替换了。许多牛逼的对象都是从参数对象开始的。
+
+如果引入参数对象最初的目的是提高可读性，参数对象现已经成为了存放逻辑的重要地方。参数经常一起出现是一个它们关联性很强的信号。一个包含这些参数的类就是在说：这堆数据是强相关的。
+
+参数对象不被经常使用的一个原因是性能--分配这些属性需要时间。大多数时候，这并不是问题。如果对象分配成为了瓶颈，参数对象可以内联，在需要的地方变回参数列表。最好的代码优化是可读性，重构，测试；参数对象就是达到这个目的的。		 
 
 
 
