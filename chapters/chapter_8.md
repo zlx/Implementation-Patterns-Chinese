@@ -318,6 +318,96 @@ Object 对象接口相当简陋，只提供了7个方法。其中一个方法是
 
 ### 集合操作方法
 
+假定你有一个对象包含了一个集合。你提供了怎么样的方式来访问这个集合呢？最简单的方式提供一个集合的取值方法：
+
+	list<Book> getBooks() {
+	  return books;
+	}
+
+这给了客户最大的灵活性，但是也带来了很多问题。如果你返回了整个集合，那些依赖于集合内容的内部状态就可能会无效化了。提供了这样通用的访问方式也失去了创建一个丰富的，有意义的对象协议的机会。
+
+另外一种选择是返回之前，将这个集合包在一个不可修改的集合里面。不幸的是，这种包装只是对编译器的伪装成一个集合。如果有人尝试修改这个集合，就会抛出一个异常。调试这种错误，特别是在生产环境下，是非常昂贵的。
+
+	list<Book> getBooks() {
+	  return Collections.unmodifiableList(books);
+	}
+
+另外的话，也可以提供有限的几个方法，有意义地访问集合中的一些信息。
+
+	void addBook(Book arrival) {
+	  books.add(arrival);
+	}
+	int bookCount() {
+	  return books.size();
+	}
+
+如果用户需要一个遍历每个集合中每个元素的迭代器，那就提供一个方法返回迭代器：
+
+	Iterator getBooks() {
+	  return books.interator();
+	}
+
+这可以阻止用户直接修改这个集合，除非在迭代器上面调用邪恶的 remove() 方法。如果你想保证用户不能修改集合的内容，就返回一个在一有元素移除就会抛出异常的迭代器。同时，只在运行时通知这个错误是冒险的，也是难以调试的。
+
+	Iterator<book> getBooks() {
+	  final Iterator<Book> reader = books.interator();
+	  return new Iterator<Book>() {
+		public boolean hasNext() {
+		  return reader.hasNext();
+		}
+
+		public Book next() {
+		  return render.next();
+		}
+
+		public void remove() {
+		  throw new UnsupportedOperationException();
+		}
+	  }
+	}
+
+如果你自己重复了集合的大部分方法，可能你碰到了一些设计上的问题。如果你的对象为用户做得越多，它就不应该提供这么多内部细节。
+
+### 布尔型设值方法
+
+提供一个设置布尔型的方法有多大重要？最简单的方式是一个空的设值方法：
+
+	void setValid(boolean newState) {
+	  ...
+	}
+
+如果用户需要这种访问的灵活性，这样是合理地。如果所有调用的地方都是 true 或者 false 。 你可以提供更有表现力的接口，比如：
+
+	void valid() {...}
+	void invalid() {...}
+
+使用这种接口可读性更好，也更容易看出设置了那种状态。然而，如果你的代码是这样的：
+
+...
+if (...boolean expression...)
+  cache.valid();
+else
+  cache.invalid();
+ 
+退回去使用 setValidity(boolean) 就更好一些了。
+
+### 查询方法
+
+有时候，一个对象需要根据另外一个对象的状态来做决定。这不是理想情况，因为别的对象应该尽量根据自己来做决定。然而，如果一个对象需要将决定作为协议的一部分，使用 be, is, was 来作为一个方法的前缀。
+
+如果一个对象有很多逻辑依赖于另外一个对象，这可能是因为这些逻辑放错地方了。比如说：如果有这样一个方法：
+
+	if(widget.isVisible())
+	  widget.doSomething();
+	else
+	  widget.doSomethingElse();
+
+这可能是代表 widget 需要一个方法。
+
+尝试移动这些逻辑，然后看看是不是清晰一些。有时候，这些移动会违反你对于那些对象的负责的计算的偏见。相信和假装你眼睛看到的提升设计的证据。这样的结果读起来更好，也比之前的做法更加通用。
+
+###
+
 
 
 	
