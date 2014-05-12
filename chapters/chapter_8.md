@@ -406,7 +406,105 @@ else
 
 尝试移动这些逻辑，然后看看是不是清晰一些。有时候，这些移动会违反你对于那些对象的负责的计算的偏见。相信和假装你眼睛看到的提升设计的证据。这样的结果读起来更好，也比之前的做法更加通用。
 
-###
+### 相等方法
+
+当两个对象需要做相等比较，比如说作为 Hash 里面的 key。但是和他们的身份标识并没有关系，就实现 equals() 和 hashCode() 方法。因为两个相等的对象需要有相同的 hash 值，只使用哪些需要在相等比较时使用的数据来生成这个 hash。
+
+比如说：如果你正在写金融软件，你可能会使用一些有序列号的金融工具。这可能就会用到这样的相等比较：
+
+	Instrument
+	public boolean equals(Object other) {
+	  if (! other instanceof Instrument)
+		return false;
+	  Instrument instrument = (Instrument) other;
+	  return getSerialNumber().equals(instrucement.getSerialNumber());
+	}
+
+注意最前面的保护代码。理论上，任何两个对象都可以做相等比较，所以你的代码要足够健壮（能处理不同类型对象的比较）。如果你知道不同类之间的比较是一种程序错误，那就去掉保卫代码，让程序抛出 ClassCastException 错误。或者在保卫代码中抛出一个 IllegalArgumentException。
+
+因为 serial number 是相等比较时唯一用到的信息，所以这是生成 hash 值时唯一需要的数据。
+
+	Instrument
+	public int hashCode() {
+	  return getSerialNumber.hashCode();
+	}
+
+注意，对于小数据集，0 作为 hash 值也是可以的。
+
+二十年前，整个相等的问题都很重要。我还记得仔细设计出详细的相等计划的时光。那时候还流传着一个漫画：上面画着两个人坐在午餐馆吃饭：第一个人说：“我想要他的东西”。于是服务员就拿起第二个人的碟子，放在第一个人面前。
+
+现在的 equals() 和 hashCode() 这种相等比较的遗留结果。如果你想使用它们，需要遵守以下规则：不要使用一些怪异的做法，比如说：将一个对象塞到集合里面，但是之后不能马上取出它。
+
+另外一个相等方法的不好之处是如何确保两个不变的对象相等是相同的。比如说：在一个工厂方法里面分配 Instrument 可以保证：
+
+	Instrument
+	static Instrument create(String serialNumber) {
+	  if (cache.containsKey(serialNumber))
+		return cache.get(serialNumber);
+	  Instrument result = new Instrument(serialNumber);
+	  cache.put(serialNumber, result);
+	  return result;
+	}
+
+### 取值方法
+
+一种提供访问对象状态的方式是提供取值方法。按照约定，在 Java 里面，这种方法是用 get 开始的，比如说：
+
+	int getX() {
+	  return x;
+	}
+
+这种惯例是一种元数据形式。我短暂地尝试过直接使用变量名作为取值方法，但很快就切换回来了。因为读者看到 getX 更容易理解，不管怎么样，在我看来，按照期望来写代码更加好。
+
+如何来写取值方法并没有像要不要写，访问范围是什么这样的问题来得重要或者有趣。根据逻辑和数据放在一起的原则，public 还是 package 可以看到这个取值方法是一个线索。有时候，与其写取值方法，还不如直接将使用数据的逻辑移走。
+
+有很多例外情况让我讨厌取值方法。一个是在他们自己的对象里面有很多算法。算法需要操作一些数据，然后需要取值方法来获取数据。另外一个是当我需要公开一个方法时，正好有一个属性被公开了。最后，哪些被工具调用的取值方法必须为公开。
+
+内部取值方法（私有的或者受保护的）是实现懒加载或者缓存的好办法。作为额外的抽象，这些事完全可以在需要的时候添加。
+
+### 设值方法
+
+如果你需要一个方法来设置一个属性的值，使用 set 作为前缀来命名。比如说：
+
+	void setX(int nexX) {
+	  x = newX;
+	}
+
+相比较取值方法，我更加不情愿公开我的设值方法。设值方法是按照实现命名的，而不是根据意图。如果一个接口可以通过设置一个属性来完美实现，那还好，但是如果名字应该根据使用者的角度来命名。所以最好知道使用者通过设置一个值解决了什么问题或者通过提供一个方法定位到了问题在哪里。
+
+使用设值方法作为接口的一部分可以让实现者泄露出：
+
+	paragraph.setJustification(Paragraph.CENTERED)
+
+使用方法的目的作为名字可以有助于代码可读性：
+
+	pragraph.centered();
+
+如果 centered 是一个设值方法：
+
+	Pragrah:centered() {
+	  setJustification(CENTERED);
+	}
+
+内部使用的（私有的或者受保护的）设值方法是很有价值的，比如说：对于更新依赖的信息。比如说：我们的 paragraph ，当 justification 改变时可能需要重新显示。你可能可以这样实现设值方法：
+
+	private void setJustification(...) {
+	  ...
+	  redisplay()
+	}
+
+这种设值方法的使用更像一个常量引擎，确保这个数据改变了，那个依赖数据也会发生改变。
+
+设值方法导致了代码变得脆弱。我们的原则是避免大距离的操作。如果对象A依赖于对象Bde是内部实现，对象Bde改变需要Ade代码修改，不是因为A有什么变化，而只是因为假定A发生了变化。最好的方式是将这块代码移到一个地方。可能A需要用这个数据，B应该提供更有意义的接口。
+
+像取值方法一样，如果你的工具需要调用设置方法，将他们标记为 Tool Use Only然后将它们标记为 public。避免让人们对这个接口进行多余的争论。
+	
+	
+	
+
+	
+	
+
 
 
 
