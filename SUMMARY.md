@@ -11,6 +11,6 @@
 * [第7章: 行为](chapters/chapter_7.md)
 * [第8章: 方法](chapters/chapter_8.md)
 * [第9章: 集合](chapters/chapter_9.md)
-* 第10章：框架
+* 第10章: 框架
 * 附录A: 性能测试
 
